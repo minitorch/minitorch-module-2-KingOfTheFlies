@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Tuple, List, Set
 
 from typing_extensions import Protocol
-from collections import defaultdict
+from collections import defaultdict, deque
 
 # ## Task 1.1
 # Central Difference calculation
@@ -65,19 +65,20 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
     Returns:
         Non-constant Variables in topological order starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    top_seq: List[Variable] = []
+    # TODO: Implement for Task 1.4.    
     visited_nodes: Set[int] = set()
+    top_seq = deque()
 
-    def visit(var: Variable) -> None:
-        if var.unique_id not in visited_nodes:
-            visited_nodes.add(var.unique_id)
-            for parent in var.parents:
-                visit(parent)
-            top_seq.append(var)
+    def visit(node: Variable):
+        if node.unique_id in visited_nodes or node.is_constant():
+            return
+        if not node.is_leaf():
+            for input in node.history.inputs:
+                visit(input)
+        visited_nodes.add(node.unique_id)
+        top_seq.appendleft(node)
 
     visit(variable)
-    top_seq = top_seq[::-1]
     return top_seq
 
 
