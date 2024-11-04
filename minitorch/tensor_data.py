@@ -3,13 +3,13 @@ from __future__ import annotations
 import random
 from typing import Iterable, Optional, Sequence, Tuple, Union
 
+from minitorch.operators import sum, zipWith, mul, prod
+
 import numba
 import numpy as np
 import numpy.typing as npt
 from numpy import array, float64
 from typing_extensions import TypeAlias
-
-from .operators import prod
 
 MAX_DIMS = 32
 
@@ -44,7 +44,7 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
 
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    return sum(zipWith(mul)(index, strides))
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -61,7 +61,9 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
 
     """
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    for i in range(len(shape) - 1, -1, -1):
+        out_index[i] = ordinal % shape[i]
+        ordinal //= shape[i]
 
 
 def broadcast_index(
@@ -84,7 +86,11 @@ def broadcast_index(
         None
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    for j in range(len(shape)):
+        if shape[j] == 1:
+            out_index[j] = 0
+        else:
+            out_index[j] = big_index[j + len(big_shape) - len(shape)]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -102,7 +108,22 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
         IndexingError : if cannot broadcast
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    max_len = max(len(shape1), len(shape2))
+    shape1 = (1,) * (max_len - len(shape1)) + shape1
+    shape2 = (1,) * (max_len - len(shape2)) + shape2
+
+    broadcast_shape = []
+    for dim1, dim2 in zip(shape1, shape2):
+        if dim1 == dim2:
+            broadcast_shape.append(dim1)
+        elif dim1 == 1:
+            broadcast_shape.append(dim2)
+        elif dim2 == 1:
+            broadcast_shape.append(dim1)
+        else:
+            raise IndexingError(f"Impossible to broadcast two tensors with shapes {dim1} and {dim2}")
+
+    return tuple(broadcast_shape)
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
@@ -223,7 +244,9 @@ class TensorData:
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
         # TODO: Implement for Task 2.1.
-        raise NotImplementedError("Need to implement for Task 2.1")
+        shape = tuple(self.shape[i] for i in order)
+        strides = tuple(self.strides[i] for i in order)
+        return TensorData(self._storage, shape, strides)
 
     def to_string(self) -> str:
         s = ""
